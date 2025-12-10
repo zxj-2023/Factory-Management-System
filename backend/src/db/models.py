@@ -3,12 +3,34 @@ from sqlalchemy import (
     Column, String, Integer, DECIMAL, Date, CHAR, DateTime,
     ForeignKey, CheckConstraint, UniqueConstraint, func
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 # SQLAlchemy 的基类，所有模型类都需要继承这个 Base
 # declarative_base() 创建了一个基类，用于定义数据库表结构的映射
 Base = declarative_base()
+
+
+class AppUser(Base):
+    __tablename__ = 'app_user'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    auth_user_id = Column(UUID(as_uuid=True), nullable=False, unique=True)
+    email = Column(String(255), nullable=False)
+    display_name = Column(String(100))
+    role = Column(String(30), nullable=False)
+    warehouse_id = Column(String(20), ForeignKey('warehouse.warehouse_id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('admin','warehouse_manager','purchaser','inventory_operator')",
+            name='check_app_user_role',
+        ),
+    )
+
 
 class Part(Base):
     __tablename__ = 'part'

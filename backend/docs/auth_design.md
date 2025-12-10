@@ -1,30 +1,19 @@
-# 认证与权限设计（草案）
+# 认证与权限设计（更新版）
 
 ## 目标
-- 提供统一的登录/鉴权机制，生成携带角色的 JWT。
-- 路由按角色/权限控制访问，满足四类角色：admin、warehouse_manager、purchaser、inventory_operator。
+- 使用 Supabase Auth 签发的 JWT 作为统一凭证，不再自签本地 token。
+- 路由按角色控制访问，满足四类角色：admin、warehouse_manager、purchaser、inventory_operator。
+- JWT 校验与角色判断集中在依赖/中间件层，业务路由和服务层只处理业务逻辑。
 
-## 路由草案（auth）
-- `POST /auth/login`：用户名密码登录，返回 access token（JWT），payload 含 `sub`、`roles`，可选 refresh token。
-- `POST /auth/refresh`（可选）：用 refresh token 换新的 access token。
-- `GET /auth/me`：基于当前 token 返回用户信息与角色，用于前端初始化。
+## 登录与 Token 获取
+- 前端/客户端通过 Supabase Auth 完成登录，获取 access token（JWT）。
+- JWT 中的角色可放在 `role` 字段或 `app_metadata/user_metadata` 自定义字段，需与业务角色映射。
 
-## JWT 载荷建议
-- `sub`: 用户唯一标识
-- `roles`: 角色列表，例如 `["warehouse_manager"]`
-- `exp`, `iat`, `iss`, `aud` 等标准字段
-
-## FastAPI 依赖示例
-- `get_current_user`: 解析/校验 JWT，返回用户与角色信息。
-- `require_roles(*roles)`: 校验当前用户是否具备任一所需角色，不满足返回 403。
-  ```python
-  def require_roles(*allowed):
-      def checker(user=Depends(get_current_user)):
-          if not set(user.roles) & set(allowed):
-              raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
-          return user
-      return checker
-  ```
+## 后端校验与依赖
+- 环境：`SUPABASE_PROJECT_URL`、`SUPABASE_JWKS_URL`（`https://<project>.supabase.co/auth/v1/.well-known/jwks.json`）、可选 `SUPABASE_ISS`。
+- `get_current_user`: 通过 JWKS 校验签名与 `iss/aud/exp`，解析 `sub` 和角色字段，返回用户上下文。
+- `require_roles(*roles)`: 校验用户是否具备任一指定角色，不满足返回 403。
+- 推荐在 `APIRouter` 上用 `dependencies=[Depends(require_roles(...))]` 做统一鉴权，敏感接口可再叠加更严格的 `require_roles`。
 
 ## 角色-路由对应（与业务设计一致）
 - admin：全量写；可管理用户/角色（后续扩展）。
@@ -34,12 +23,13 @@
 - 其他访问默认只读或拒绝。
 
 ## 安全与配置
-- 秘钥/过期时间/issuer 等放环境变量（如 `SECRET_KEY`、`ACCESS_TOKEN_EXPIRES`）；不要提交明文到仓库。
-- 使用 HTTPS 传输；前后端约定 `Authorization: Bearer <token>`。
+- 不暴露 service_role key 于前端；后端也避免用它转发请求。
+- JWKS 有缓存（约 10 分钟）；轮换密钥时注意缓存失效。
+- 全程 HTTPS，校验 `iss/aud/exp`，对无 token/过期/签名错误返回 401，对角色不足返回 403。
 - 可加入中间件记录操作审计日志（用户、路径、时间、结果）。
 
 ## 实施顺序建议
-1) 定义用户与角色数据源（临时内存/配置或数据库表，DB 操作通过 MCP）。
-2) 实现 `/auth/login` 生成 JWT；添加 `get_current_user` 依赖。
-3) 为各业务路由添加 `require_roles` 依赖（最小权限原则）。
-4) 按需实现 refresh/注销；补充安全测试（过期、伪造、权限不足）。
+1) 前端改用 Supabase Auth 登录，拿到 access token。
+2) 后端实现 `get_current_user`（JWKS 校验 + 解析角色），实现 `require_roles`。
+3) 在各业务路由挂 `require_roles`（router 级统一鉴权，必要时接口级加严）。
+4) 补充安全测试：过期/伪造/角色不足场景。
