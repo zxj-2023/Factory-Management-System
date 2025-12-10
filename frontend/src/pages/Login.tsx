@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Card, Form, Input, message, Typography } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import api from '../services/api';
 
 const { Title } = Typography;
 
@@ -17,6 +18,12 @@ const Login = () => {
     if (error) {
       message.error(error.message || '登录失败');
       return;
+    }
+    // 登录成功后同步业务用户
+    try {
+      await api.get('/auth/sync');
+    } catch (err) {
+      message.warning('登录成功，但同步业务用户失败，请稍后重试');
     }
     message.success('登录成功');
     navigate('/');

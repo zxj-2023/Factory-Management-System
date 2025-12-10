@@ -9,6 +9,7 @@ from api.purchases import router as purchases_router
 from api.staff import router as staff_router
 from api.suppliers import router as suppliers_router
 from api.warehouses import router as warehouses_router
+from api.auth import router as auth_router
 
 # FastAPI 应用实例，集中注册各业务路由。
 app = FastAPI(title="Factory API")
@@ -22,6 +23,7 @@ app.include_router(warehouses_router)
 app.include_router(staff_router)
 app.include_router(inventory_router)
 app.include_router(purchases_router)
+app.include_router(auth_router)
 
 
 def main() -> None:
