@@ -9,6 +9,11 @@
 - 前端/客户端通过 Supabase Auth 完成登录，获取 access token（JWT）。
 - JWT 中的角色可放在 `role` 字段或 `app_metadata/user_metadata` 自定义字段，需与业务角色映射。
 
+## Auth 路由设计
+- `/auth/sync`：鉴权后返回业务用户信息与角色；若业务表无记录则自动创建（使用 `sub`/`email`，赋默认角色，可选默认仓库），再返回。
+- `/auth/login`：如需本地登录可保留；当前采用 Supabase Auth，登录由前端完成。
+- `/auth/refresh`：Supabase Auth 前端 SDK 可自动管理刷新，后端可不暴露。
+
 ## 后端校验与依赖
 - 环境：`SUPABASE_PROJECT_URL`、`SUPABASE_JWKS_URL`（`https://<project>.supabase.co/auth/v1/.well-known/jwks.json`）、可选 `SUPABASE_ISS`。
 - `get_current_user`: 通过 JWKS 校验签名与 `iss/aud/exp`，解析 `sub` 和角色字段，返回用户上下文。
@@ -31,5 +36,6 @@
 ## 实施顺序建议
 1) 前端改用 Supabase Auth 登录，拿到 access token。
 2) 后端实现 `get_current_user`（JWKS 校验 + 解析角色），实现 `require_roles`。
-3) 在各业务路由挂 `require_roles`（router 级统一鉴权，必要时接口级加严）。
-4) 补充安全测试：过期/伪造/角色不足场景。
+3) 增加 `/auth/sync`：鉴权 → 查/建业务用户表 → 返回业务角色与档案。
+4) 在各业务路由挂 `require_roles`（router 级统一鉴权，必要时接口级加严）。
+5) 补充安全测试：过期/伪造/角色不足场景。

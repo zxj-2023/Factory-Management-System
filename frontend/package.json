@@ -16,6 +16,7 @@
     "@types/react-router-dom": "^5.3.3",
     "antd": "^6.1.0",
     "axios": "^1.13.2",
+    "@supabase/supabase-js": "^2.48.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-redux": "^9.2.0",
