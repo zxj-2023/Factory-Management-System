@@ -4,85 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-这是一个工厂管理系统，采用现代化的全栈架构：
-- **后端**: FastAPI + SQLAlchemy + Supabase PostgreSQL
-- **前端**: React (TypeScript)
-- **数据库**: Supabase (PostgreSQL)
-- **部署**: 生产就绪的云原生架构
-
-## 项目结构
-
-```
-factory/
-├── backend/                    # FastAPI 后端
-│   └── src/
-│       └── db/
-│           ├── models.py       # SQLAlchemy 数据模型
-│           ├── create_tables.py # 数据库表创建脚本
-│           └── seed_data.py    # 示例数据脚本
-├── frontend/                   # React 前端 (待创建)
-├── .mcp.json                   # MCP 配置
-├── .claude/                    # Claude 配置
-└── pyproject.toml             # Python 项目配置
-```
+这是一个使用 FastAPI + React + Supabase 的工厂管理系统数据库项目。项目定义了工厂的零件管理、供应商、仓库、职工、库存和采购等核心业务模型。
 
 ## 核心数据模型
 
-项目使用 SQLAlchemy ORM 定义了以下核心业务模型：
+项目使用 SQLAlchemy ORM 定义了以下核心业务模型（在 [backend/src/db/models.py](backend/src/db/models.py) 中）：
 
-### 1. **Part（零件）**
-- `part_id`: 零件编号（主键）
-- `name`: 零件名称
-- `unit_price`: 单价（DECIMAL 精确计算）
-- `type`: 零件类型
+- **Part** - 零件表（part_id, name, unit_price, type）
+- **Supplier** - 供应商表（supplier_id, name, address, phone）
+- **Warehouse** - 仓库表（warehouse_id, address）
+- **Staff** - 职工表（staff_id, name, gender, hire_date, title, warehouse_id）
+- **Inventory** - 库存表（warehouse_id, part_id, stock_quantity）- 复合主键
+- **Purchase** - 采购表（purchase_id, part_id, supplier_id, warehouse_id, purchase_date, quantity, actual_price）
 
-### 2. **Supplier（供应商）**
-- `supplier_id`: 供应商编号（主键）
-- `name`: 供应商名称
-- `address`: 地址
-- `phone`: 联系电话
+## Supabase 集成
 
-### 3. **Warehouse（仓库）**
-- `warehouse_id`: 仓库编号（主键）
-- `address`: 仓库地址
+项目已配置 Supabase MCP 服务器：
 
-### 4. **Staff（职工）**
-- `staff_id`: 职工编号（主键）
-- `name`: 姓名
-- `gender`: 性别（M/F 约束）
-- `hire_date`: 入职日期
-- `title`: 职位
-- `warehouse_id`: 所属仓库（外键）
-
-### 5. **Inventory（库存）**
-- 复合主键: `(warehouse_id, part_id)`
-- `stock_quantity`: 库存数量（非负约束）
-
-### 6. **Purchase（采购）**
-- `purchase_id`: 采购单号（主键）
-- `part_id`: 采购零件（外键）
-- `supplier_id`: 供应商（外键）
-- `warehouse_id`: 入库仓库（外键）
-- `purchase_date`: 采购日期
-- `quantity`: 采购数量（正值约束）
-- `actual_price`: 实际采购价格（正值约束）
-
-## 数据库配置
-
-### Supabase 集成
-- 项目已配置 Supabase MCP 服务器
-- 项目引用: `fswbnlfblhgnmjevlktk`
-- 使用 PostgreSQL 作为数据存储
-
-### 环境变量
-创建 `.env` 文件：
-```
-DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]
-```
+- 项目引用：`fswbnlfblhgnmjevlktk`
+- 在进行任何数据库操作时，必须使用 MCP Supabase 工具
 
 ## 常用命令
 
-### 后端开发
+### 环境设置
 
 ```bash
 # 进入后端目录
@@ -91,94 +35,103 @@ cd backend
 # 安装 Python 依赖
 pip install sqlalchemy psycopg2-binary python-dotenv fastapi uvicorn
 
-# 创建数据库表
-python src/db/create_tables.py
-
-# 插入示例数据
-python src/db/seed_data.py
-
-# 启动 FastAPI 开发服务器
-uvicorn src.main:app --reload --port 8000
+# 创建 .env 文件并设置 DATABASE_URL，例如：
+# DATABASE_URL=postgresql://username:password@localhost:5432/factory_db
 ```
 
-### 前端开发（待实现）
+### 数据库操作（使用 Supabase）
 
 ```bash
-# 进入前端目录
+# 进入后端目录
+cd backend
+
+# 查看当前数据库表
+# 使用 mcp__supabase__list_tables
+
+# 查看当前迁移
+# 使用 mcp__supabase__list_migrations
+
+# 创建新的迁移（DDL操作）
+# 使用 mcp__supabase__apply_migration
+
+# 执行 SQL 查询
+# 使用 mcp__supabase__execute_sql
+```
+
+### 开发命令
+
+```bash
+# 启动 FastAPI 开发服务器（待实现）
+uvicorn src.main:app --reload --port 8000
+
+# 运行测试（待实现）
+pytest
+
+# 前端开发（待实现）
 cd frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-## 业务逻辑说明
+## 架构说明
 
-### 库存管理
-- 库存通过 Inventory 表记录各仓库的零件库存
-- 初始库存为 0，通过采购记录自动更新
-- `seed_data.py` 中的 `update_inventory_from_purchases()` 函数聚合采购数量并更新库存
+### 数据库连接
 
-### 采购流程
-- 每笔采购记录关联零件、供应商、仓库
-- 支持实际采购价格与目录单价不同
-- 所有采购都会自动增加对应仓库的库存
+- 使用 Supabase PostgreSQL 作为数据存储
+- 通过 MCP 工具进行所有数据库操作
+- 项目的 [models.py](backend/src/db/models.py) 定义了完整的数据结构
 
-### 数据完整性
-- 使用 CheckConstraint 确保数据合理性：
-  - 单价、库存数量 >= 0
-  - 采购数量、实际价格 > 0
-  - 性别只能是 M/F
-- 使用 DECIMAL 类型确保财务数据精度
+### 业务逻辑
 
-## 开发指南
+- 库存管理：Inventory 表记录各仓库的零件库存数量
+- 采购记录：Purchase 表记录采购详情，包含实际采购价格
+- 数据完整性：通过 CheckConstraint 确保单价、数量等字段为正数
+- 库存更新：根据采购记录聚合更新库存
 
-### 使用 Supabase
-在处理数据库操作时，必须使用 MCP Supabase 工具：
-- 查询数据：使用 `mcp__supabase__execute_sql`
-- 创建表：使用 `mcp__supabase__apply_migration`
-- 获取项目信息：使用 `mcp__supabase__get_project_url`
+### FastAPI 后端架构
 
-### API 设计原则
-- 使用 FastAPI 创建 RESTful API
-- 实现适当的 CRUD 操作
-- 添加数据验证和错误处理
-- 使用 Pydantic 模型定义请求/响应
+```
+backend/
+├── src/
+│   ├── db/                     # 数据库模型和操作
+│   │   ├── models.py          # SQLAlchemy 模型
+│   │   ├── create_tables.py   # 表创建脚本
+│   │   └── seed_data.py       # 初始化数据
+│   ├── auth/                  # 认证模块（待实现）
+│   └── main.py                # FastAPI 应用入口（待实现）
+├── api/                       # API 路由（待实现）
+├── services/                  # 业务服务层（待实现）
+└── tests/                     # 测试文件（待实现）
+```
 
-### 前端开发原则
-- 使用 TypeScript 确保类型安全
-- 采用组件化架构
-- 实现响应式设计
-- 使用状态管理（如 Redux Toolkit）
+### React 前端架构（待实现）
 
-## 待实现功能
-
-1. **FastAPI 后端 API**
-   - 零件管理 API
-   - 供应商管理 API
-   - 库存查询 API
-   - 采购记录 API
-   - 职工管理 API
-
-2. **React 前端界面**
-   - 登录/认证系统
-   - 仪表板
-   - 各实体的 CRUD 界面
-   - 库存报表
-   - 采购统计
-
-3. **高级功能**
-   - 库存预警
-   - 采购建议
-   - 数据导出
-   - 批量操作
+```
+frontend/
+├── src/
+│   ├── components/            # React 组件
+│   ├── pages/                 # 页面组件
+│   ├── services/              # API 调用服务
+│   ├── hooks/                 # 自定义 hooks
+│   └── utils/                 # 工具函数
+├── public/                    # 静态资源
+└── package.json               # 依赖配置
+```
 
 ## 注意事项
 
-- 所有数据库操作应通过 Supabase MCP 工具进行
-- 保持前后端 API 接口的一致性
-- 遵循 Python 和 JavaScript 的最佳实践
-- 确保所有价格和数量计算的精确性
-- 添加适当的日志记录和错误处理
+1. **必须使用 Supabase MCP 工具**进行所有数据库操作，不要直接使用 SQLAlchemy 连接
+2. Inventory 表使用复合主键 (warehouse_id, part_id)
+3. Staff.gender 字段限制为 'M' 或 'F'
+4. 所有价格相关字段使用 DECIMAL 类型确保精度
+5. 采购记录中的 actual_price 可能与 Part.unit_price 不同，反映实际采购价格
+6. 项目结构符合 FastAPI 和 React 最佳实践
+
+## 待实现功能
+
+1. FastAPI 后端 API 实现
+2. React 前端界面开发
+3. 认证和授权系统
+4. 库存预警功能
+5. 数据报表和统计
+6. 单元测试和集成测试
