@@ -5,6 +5,7 @@
 - `backend/` holds Python 3.12 code; `src/db/` contains the SQLAlchemy engine (`database.py`), declarative models, and helper scripts (`create_tables.py`, `seed_data.py`); `.env` stores `DATABASE_URL`.
 - `frontend/` is a React + TypeScript app (Ant Design, Redux Toolkit); entry points are `src/index.tsx` and `src/App.tsx`, shared layout in `src/components/Layout.tsx`, feature pages under `src/pages/`, state in `src/store/`, API client in `src/services/api.ts`.
 - `docs/` contains reference materials; `pyproject.toml` and `uv.lock` pin backend deps; `.venv/` is local-only.
+- `backend/schemas` 存放后端使用的数据结构（Pydantic/领域模型）；`backend/services` 存放业务服务逻辑，路由中不直接实现业务逻辑；`backend/config` 存放业务需要的工厂实例或配置对象。
 
 ## Setup, Build, and Run
 
