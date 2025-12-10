@@ -126,6 +126,7 @@ frontend/
 4. 所有价格相关字段使用 DECIMAL 类型确保精度
 5. 采购记录中的 actual_price 可能与 Part.unit_price 不同，反映实际采购价格
 6. 项目结构符合 FastAPI 和 React 最佳实践
+7. 项目使用uv进行管理，安装包时，使用uv add
 
 ## 待实现功能
 
