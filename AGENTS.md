@@ -43,6 +43,7 @@
 - `inventory` 表使用复合主键 `(warehouse_id, part_id)`；`staff.gender` 仅允许 `M/F`。
 - 所有价格字段保持 `DECIMAL` 精度，`purchase.actual_price` 可与 `part.unit_price` 不同。
 - 维护 FastAPI + React 的目录和职责边界；依赖安装使用 `uv add`。
+- FastAPI 规范：`backend/main.py` 定义 FastAPI 应用（app）并汇总路由；功能路由模块放在 `backend/api/` 下，使用 `APIRouter`，在 `main.py` 通过 `include_router` 注册。
 
 ## 注意事项（Must-Know Notes）
 
