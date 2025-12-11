@@ -4,12 +4,16 @@ Supabase JWT 校验与权限依赖（供 FastAPI 路由使用），基于 PyJWT 
 
 import os
 from functools import lru_cache
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import jwt
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
+
+from src.db.database import get_db
+from services.auth import get_or_create_app_user
 
 # 加载 .env 变量
 load_dotenv()
@@ -73,21 +77,33 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_
     return {
         "sub": payload.get("sub"),
         "email": payload.get("email"),
+        # 角色由 app_user 决定，这里仅返回 JWT 角色作为参考
         "role": payload.get("role") or payload.get("app_metadata", {}).get("role"),
         "raw": payload,
     }
 
 
-def require_roles(*allowed: str):
-    def checker(user=Depends(get_current_user)):
-        roles = user.get("role")
-        roles_list: List[str] = []
-        if isinstance(roles, str):
-            roles_list = [roles]
-        elif isinstance(roles, list):
-            roles_list = roles
+def get_current_app_user(
+    db: Session = Depends(get_db),
+    user: Dict = Depends(get_current_user),
+):
+    """
+    基于 Supabase sub 查/建 app_user，返回业务用户（含 role）。
+    """
+    if not user.get("sub") or not user.get("email"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload")
+    return get_or_create_app_user(db, user["sub"], user["email"])
+
+
+def require_app_roles(*allowed: str):
+    """
+    路由装饰用，基于 app_user.role 校验。
+    """
+    def checker(app_user=Depends(get_current_app_user)):
+        role_to_check = app_user.role
+        roles_list: List[str] = [role_to_check] if isinstance(role_to_check, str) else role_to_check
         if not set(roles_list) & set(allowed):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
-        return user
+        return app_user
 
     return checker
