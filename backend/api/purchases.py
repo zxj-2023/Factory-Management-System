@@ -9,9 +9,14 @@ from sqlalchemy.orm import Session
 
 from schemas.purchase import PurchaseCreate, PurchaseOut, PurchaseUpdate
 from services import purchases as purchases_service
+from services.auth_deps import get_current_app_user, require_app_roles
 from src.db.database import get_db
 
-router = APIRouter(prefix="/factory/purchases", tags=["purchases"])
+router = APIRouter(
+    prefix="/factory/purchases",
+    tags=["purchases"],
+    dependencies=[Depends(get_current_app_user)],
+)
 
 
 @router.get("", response_model=List[PurchaseOut])
@@ -32,12 +37,21 @@ def get_purchase(purchase_id: str, db: Session = Depends(get_db)):
     return record
 
 
-@router.post("", response_model=PurchaseOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PurchaseOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_app_roles("admin", "purchaser"))],
+)
 def create_purchase(payload: PurchaseCreate, db: Session = Depends(get_db)):
     return purchases_service.create_purchase(db, payload)
 
 
-@router.put("/{purchase_id}", response_model=PurchaseOut)
+@router.put(
+    "/{purchase_id}",
+    response_model=PurchaseOut,
+    dependencies=[Depends(require_app_roles("admin", "purchaser"))],
+)
 def update_purchase(purchase_id: str, payload: PurchaseUpdate, db: Session = Depends(get_db)):
     record = purchases_service.update_purchase(db, purchase_id, payload)
     if not record:
@@ -45,7 +59,11 @@ def update_purchase(purchase_id: str, payload: PurchaseUpdate, db: Session = Dep
     return record
 
 
-@router.delete("/{purchase_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{purchase_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_app_roles("admin", "purchaser"))],
+)
 def delete_purchase(purchase_id: str, db: Session = Depends(get_db)):
     ok = purchases_service.delete_purchase(db, purchase_id)
     if not ok:

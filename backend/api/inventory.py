@@ -9,9 +9,14 @@ from sqlalchemy.orm import Session
 
 from schemas.inventory import InventoryAdjust, InventoryCreate, InventoryOut, InventoryUpdate
 from services import inventory as inventory_service
+from services.auth_deps import get_current_app_user, require_app_roles
 from src.db.database import get_db
 
-router = APIRouter(prefix="/factory/inventory", tags=["inventory"])
+router = APIRouter(
+    prefix="/factory/inventory",
+    tags=["inventory"],
+    dependencies=[Depends(get_current_app_user)],
+)
 
 
 @router.get("", response_model=List[InventoryOut])
@@ -31,12 +36,21 @@ def get_inventory(warehouse_id: str, part_id: str, db: Session = Depends(get_db)
     return record
 
 
-@router.post("", response_model=InventoryOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=InventoryOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_app_roles("admin", "warehouse_manager", "inventory_operator"))],
+)
 def create_inventory(payload: InventoryCreate, db: Session = Depends(get_db)):
     return inventory_service.create_inventory(db, payload)
 
 
-@router.put("/{warehouse_id}/{part_id}", response_model=InventoryOut)
+@router.put(
+    "/{warehouse_id}/{part_id}",
+    response_model=InventoryOut,
+    dependencies=[Depends(require_app_roles("admin", "warehouse_manager", "inventory_operator"))],
+)
 def update_inventory(warehouse_id: str, part_id: str, payload: InventoryUpdate, db: Session = Depends(get_db)):
     record = inventory_service.update_inventory(db, warehouse_id, part_id, payload)
     if not record:
@@ -44,7 +58,11 @@ def update_inventory(warehouse_id: str, part_id: str, payload: InventoryUpdate, 
     return record
 
 
-@router.post("/{warehouse_id}/{part_id}/adjust", response_model=InventoryOut)
+@router.post(
+    "/{warehouse_id}/{part_id}/adjust",
+    response_model=InventoryOut,
+    dependencies=[Depends(require_app_roles("admin", "warehouse_manager", "inventory_operator"))],
+)
 def adjust_inventory(warehouse_id: str, part_id: str, payload: InventoryAdjust, db: Session = Depends(get_db)):
     record = inventory_service.adjust_inventory(db, warehouse_id, part_id, payload)
     if not record:
@@ -52,7 +70,11 @@ def adjust_inventory(warehouse_id: str, part_id: str, payload: InventoryAdjust, 
     return record
 
 
-@router.delete("/{warehouse_id}/{part_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{warehouse_id}/{part_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_app_roles("admin", "warehouse_manager", "inventory_operator"))],
+)
 def delete_inventory(warehouse_id: str, part_id: str, db: Session = Depends(get_db)):
     ok = inventory_service.delete_inventory(db, warehouse_id, part_id)
     if not ok:

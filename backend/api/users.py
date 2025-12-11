@@ -11,10 +11,7 @@ from src.db.database import get_db
 router = APIRouter(
     prefix="/users",
     tags=["users"],
-    dependencies=[
-        Depends(get_current_app_user),
-        Depends(require_app_roles("admin")),
-    ],
+    dependencies=[Depends(require_app_roles("admin"))],
 )
 
 
