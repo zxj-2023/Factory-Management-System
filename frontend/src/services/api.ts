@@ -36,6 +36,10 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+    if (error.response?.status === 403) {
+      // 权限不足提示
+      alert('权限不足，无法执行该操作');
+    }
     return Promise.reject(error);
   }
 );

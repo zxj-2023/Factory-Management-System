@@ -4,8 +4,6 @@ import {
   TeamOutlined,
   HomeOutlined,
   UserOutlined,
-  InboxOutlined,
-  ShoppingCartOutlined
 } from '@ant-design/icons';
 
 const Dashboard = () => {
