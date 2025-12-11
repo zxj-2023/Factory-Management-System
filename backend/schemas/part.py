@@ -36,4 +36,4 @@ class PartOut(PartBase, TimestampMixin):
     part_id: str = Field(..., max_length=20, description="零件编号")
 
     class Config:
-        orm_mode = True
+        from_attributes = True

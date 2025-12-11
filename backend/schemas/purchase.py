@@ -42,4 +42,4 @@ class PurchaseOut(PurchaseBase, TimestampMixin):
     purchase_id: str = Field(..., max_length=30, description="采购单号")
 
     class Config:
-        orm_mode = True
+        from_attributes = True

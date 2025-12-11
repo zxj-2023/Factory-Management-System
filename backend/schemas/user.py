@@ -14,4 +14,4 @@ class UserSyncOut(TimestampMixin):
     warehouse_id: Optional[str] = Field(None, description="归属仓库（可选）")
 
     class Config:
-        orm_mode = True
+        from_attributes = True

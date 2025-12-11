@@ -35,4 +35,4 @@ class SupplierOut(SupplierBase, TimestampMixin):
     supplier_id: str = Field(..., max_length=20, description="供应商编号")
 
     class Config:
-        orm_mode = True
+        from_attributes = True

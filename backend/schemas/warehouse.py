@@ -26,4 +26,4 @@ class WarehouseOut(WarehouseBase, TimestampMixin):
     warehouse_id: str = Field(..., max_length=20, description="仓库编号")
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -39,4 +39,4 @@ class InventoryAdjust(BaseModel):
 
 class InventoryOut(InventoryBase, TimestampMixin):
     class Config:
-        orm_mode = True
+        from_attributes = True

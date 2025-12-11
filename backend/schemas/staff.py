@@ -39,4 +39,4 @@ class StaffOut(StaffBase, TimestampMixin):
     staff_id: str = Field(..., max_length=20, description="员工编号")
 
     class Config:
-        orm_mode = True
+        from_attributes = True
