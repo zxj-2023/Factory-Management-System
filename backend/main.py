@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.factory import router as factory_router
 from api.health import router as health_router
@@ -13,6 +14,15 @@ from api.auth import router as auth_router
 
 # FastAPI 应用实例，集中注册各业务路由。
 app = FastAPI(title="Factory API")
+
+# CORS 设置：根据前端地址调整 allow_origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 路由注册
 app.include_router(health_router)

@@ -15,7 +15,11 @@ import {
   UserOutlined,
   InboxOutlined,
   ShoppingCartOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons';
+import { Button, message } from 'antd';
+import { supabase } from '../services/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const { Header, Sider, Content } = AntLayout;
 const { Title } = Typography;
@@ -64,6 +68,17 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     token: { colorBgContainer },
   } = theme.useToken();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      message.error('退出登录失败');
+      return;
+    }
+    message.success('已退出登录');
+    navigate('/login');
+  };
 
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
@@ -106,6 +121,8 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
             display: 'flex',
             alignItems: 'center',
             paddingLeft: 16,
+            paddingRight: 16,
+            justifyContent: 'space-between',
           }}
         >
           <Space>
@@ -114,6 +131,9 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
               工厂管理系统
             </Title>
           </Space>
+          <Button icon={<LogoutOutlined />} onClick={handleLogout}>
+            退出登录
+          </Button>
         </Header>
         <Content
           style={{

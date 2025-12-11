@@ -1,56 +1,64 @@
 """
-Supabase JWT 校验与权限依赖（供 FastAPI 路由使用），基于 PyJWT 验证 JWKS。
+Supabase JWT 校验与权限依赖（供 FastAPI 路由使用），基于 PyJWT + PyJWKClient 验证 JWKS。
 """
 
-import json
 import os
-import time
+from functools import lru_cache
 from typing import Dict, List
-from urllib.request import urlopen
 
 import jwt
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+# 加载 .env 变量
+load_dotenv()
 
 SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL", "")
 SUPABASE_ISS = os.getenv("SUPABASE_ISS", "")
 SUPABASE_AUD = os.getenv("SUPABASE_AUD", "authenticated")
-
-_jwks_cache: Dict[str, object] = {}
-_jwks_expires_at: float = 0
-_jwks_ttl_seconds = 600
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def _load_jwks() -> Dict:
-    global _jwks_cache, _jwks_expires_at
-    now = time.time()
-    if _jwks_cache and now < _jwks_expires_at:
-        return _jwks_cache
+@lru_cache()
+def get_jwks_client():
     if not SUPABASE_JWKS_URL:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWKS URL not configured")
-    with urlopen(SUPABASE_JWKS_URL) as resp:
-        data = json.load(resp)
-        _jwks_cache = data
-        _jwks_expires_at = now + _jwks_ttl_seconds
-        return data
+    return jwt.PyJWKClient(SUPABASE_JWKS_URL)
 
 
 def _verify_token(token: str) -> Dict:
-    jwks = _load_jwks()
-    unverified = jwt.get_unverified_header(token)
-    kid = unverified.get("kid")
-    key = next((k for k in jwks.get("keys", []) if k.get("kid") == kid), None)
-    if not key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token kid")
     try:
+        unverified_header = jwt.get_unverified_header(token)
+        alg = unverified_header.get("alg", "RS256")
+
+        options = {"require_exp": True}
+        if not SUPABASE_AUD:
+            options["verify_aud"] = False
+
+        # 如果是 HS 系列并配置共享密钥，先尝试 HS 验证
+        if alg.upper().startswith("HS") and SUPABASE_JWT_SECRET:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=[alg],
+                issuer=SUPABASE_ISS or None,
+                audience=SUPABASE_AUD or None,
+                options=options,
+            )
+            return payload
+
+        # 其余（ES/RS 等）通过 JWKS 验证
+        signing_key = get_jwks_client().get_signing_key_from_jwt(token).key
         payload = jwt.decode(
             token,
-            key,
-            algorithms=[unverified.get("alg", "RS256")],
-            audience=SUPABASE_AUD,
+            signing_key,
+            algorithms=[alg],
             issuer=SUPABASE_ISS or None,
+            audience=SUPABASE_AUD or None,
+            options=options,
         )
         return payload
     except jwt.PyJWTError:
