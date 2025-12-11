@@ -14,6 +14,7 @@ import Inventory from './pages/Inventory';
 import Purchases from './pages/Purchases';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Users from './pages/Users';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
               <Route path="/staff" element={<Staff />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/purchases" element={<Purchases />} />
+              <Route path="/users" element={<Users />} />
             </Route>
           </Routes>
         </Router>

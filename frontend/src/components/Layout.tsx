@@ -16,6 +16,7 @@ import {
   InboxOutlined,
   ShoppingCartOutlined,
   LogoutOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Button, message } from 'antd';
 import { supabase } from '../services/supabaseClient';
@@ -59,6 +60,11 @@ const menuItems = [
     key: '/purchases',
     icon: <ShoppingCartOutlined />,
     label: <Link to="/purchases">采购记录</Link>,
+  },
+  {
+    key: '/users',
+    icon: <SettingOutlined />,
+    label: <Link to="/users">用户权限</Link>,
   },
 ];
 
