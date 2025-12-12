@@ -29,7 +29,7 @@ const menuItems = [
   {
     key: '/',
     icon: <DashboardOutlined />,
-    label: <Link to="/">仪表板</Link>,
+    label: <Link to="/">首页</Link>,
   },
   {
     key: '/parts',
