@@ -90,7 +90,16 @@ const Purchases = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updatePurchase(editing.purchase_id, values);
+        const { part_id, supplier_id, warehouse_id, purchase_date, quantity, actual_price } =
+          values;
+        await updatePurchase(editing.purchase_id, {
+          part_id,
+          supplier_id,
+          warehouse_id,
+          purchase_date,
+          quantity,
+          actual_price,
+        });
         message.success('更新成功');
       } else {
         await createPurchase(values as PurchaseRow);

@@ -44,7 +44,8 @@ const Parts = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updatePart(editing.part_id, values);
+        const { name, type, unit_price } = values;
+        await updatePart(editing.part_id, { name, type, unit_price });
         message.success('更新成功');
       } else {
         await createPart(values);

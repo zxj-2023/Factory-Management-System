@@ -64,7 +64,8 @@ const Staff = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updateStaff(editing.staff_id, values);
+        const { name, gender, hire_date, title, warehouse_id } = values;
+        await updateStaff(editing.staff_id, { name, gender, hire_date, title, warehouse_id });
         message.success('更新成功');
       } else {
         await createStaff(values as StaffRow);

@@ -77,7 +77,8 @@ const Inventory = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updateInventory(editing.warehouse_id, editing.part_id, values);
+        const { stock_quantity } = values;
+        await updateInventory(editing.warehouse_id, editing.part_id, { stock_quantity });
         message.success('更新成功');
       } else {
         await createInventory(values);

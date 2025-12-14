@@ -44,7 +44,7 @@ const Warehouses = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updateWarehouse(editing.warehouse_id, values);
+        await updateWarehouse(editing.warehouse_id, { address: values.address });
         message.success('更新成功');
       } else {
         await createWarehouse(values);

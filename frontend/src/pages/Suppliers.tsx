@@ -44,7 +44,8 @@ const Suppliers = () => {
       const values = await form.validateFields();
       setSaving(true);
       if (editing) {
-        await updateSupplier(editing.supplier_id, values);
+        const { name, address, phone } = values;
+        await updateSupplier(editing.supplier_id, { name, address, phone });
         message.success('更新成功');
       } else {
         await createSupplier(values);
