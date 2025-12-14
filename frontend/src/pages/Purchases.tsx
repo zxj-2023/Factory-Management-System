@@ -1,7 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Card, Table, message, Button, Modal, Form, Input, Space, Popconfirm } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Card, Table, message, Button, Modal, Form, Input, Space, Popconfirm, Select } from 'antd';
 import { Purchase as PurchaseRow } from '../types/factory';
-import { createPurchase, deletePurchase, getPurchases, updatePurchase } from '../services/factoryService';
+import {
+  createPurchase,
+  deletePurchase,
+  getPurchases,
+  updatePurchase,
+  getParts,
+  getSuppliers,
+  getWarehouses,
+} from '../services/factoryService';
 
 const Purchases = () => {
   const [data, setData] = useState<PurchaseRow[]>([]);
@@ -10,6 +18,21 @@ const Purchases = () => {
   const [form] = Form.useForm<PurchaseRow>();
   const [editing, setEditing] = useState<PurchaseRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [partOptions, setPartOptions] = useState<{ label: string; value: string }[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<{ label: string; value: string }[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ label: string; value: string }[]>([]);
+  const partLabelMap = useMemo(
+    () => Object.fromEntries(partOptions.map((p) => [p.value, p.label])),
+    [partOptions]
+  );
+  const supplierLabelMap = useMemo(
+    () => Object.fromEntries(supplierOptions.map((s) => [s.value, s.label])),
+    [supplierOptions]
+  );
+  const warehouseLabelMap = useMemo(
+    () => Object.fromEntries(warehouseOptions.map((w) => [w.value, w.label])),
+    [warehouseOptions]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -23,9 +46,32 @@ const Purchases = () => {
     }
   }, []);
 
+  const loadFKOptions = useCallback(async () => {
+    try {
+      const [parts, suppliers, warehouses] = await Promise.all([
+        getParts(),
+        getSuppliers(),
+        getWarehouses(),
+      ]);
+      setPartOptions(parts.map((p) => ({ label: `${p.part_id} - ${p.name}`, value: p.part_id })));
+      setSupplierOptions(
+        suppliers.map((s) => ({ label: `${s.supplier_id} - ${s.name}`, value: s.supplier_id }))
+      );
+      setWarehouseOptions(
+        warehouses.map((w) => ({
+          label: `${w.warehouse_id} - ${w.address ?? ''}`,
+          value: w.warehouse_id,
+        }))
+      );
+    } catch {
+      message.error('加载关联选项失败，请刷新后重试');
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadFKOptions();
+  }, [loadData, loadFKOptions]);
 
   const openCreate = () => {
     setEditing(null);
@@ -83,9 +129,21 @@ const Purchases = () => {
         rowKey="purchase_id"
         columns={[
           { title: '单号', dataIndex: 'purchase_id' },
-          { title: '零件', dataIndex: 'part_id' },
-          { title: '供应商', dataIndex: 'supplier_id' },
-          { title: '仓库', dataIndex: 'warehouse_id' },
+          {
+            title: '零件',
+            dataIndex: 'part_id',
+            render: (v: string) => partLabelMap[v] || v,
+          },
+          {
+            title: '供应商',
+            dataIndex: 'supplier_id',
+            render: (v: string) => supplierLabelMap[v] || v,
+          },
+          {
+            title: '仓库',
+            dataIndex: 'warehouse_id',
+            render: (v: string) => warehouseLabelMap[v] || v,
+          },
           { title: '数量', dataIndex: 'quantity' },
           { title: '单价', dataIndex: 'actual_price' },
           {
@@ -126,21 +184,36 @@ const Purchases = () => {
             <Input disabled={!!editing} />
           </Form.Item>
           <Form.Item name="part_id" label="零件" rules={[{ required: true, message: '请输入零件ID' }]}>
-            <Input />
+            <Select
+              placeholder="选择零件"
+              options={partOptions}
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
           <Form.Item
             name="supplier_id"
             label="供应商"
             rules={[{ required: true, message: '请输入供应商ID' }]}
           >
-            <Input />
+            <Select
+              placeholder="选择供应商"
+              options={supplierOptions}
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
           <Form.Item
             name="warehouse_id"
             label="仓库"
             rules={[{ required: true, message: '请输入仓库ID' }]}
           >
-            <Input />
+            <Select
+              placeholder="选择仓库"
+              options={warehouseOptions}
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
           <Form.Item
             name="purchase_date"

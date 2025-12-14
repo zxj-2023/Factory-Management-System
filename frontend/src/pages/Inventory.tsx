@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Card, Table, message, Button, Modal, Form, Input, Space, Popconfirm } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Card, Table, message, Button, Modal, Form, Input, Space, Popconfirm, Select } from 'antd';
 import { Inventory as InventoryRow } from '../types/factory';
-import { createInventory, deleteInventory, getInventory, updateInventory } from '../services/factoryService';
+import {
+  createInventory,
+  deleteInventory,
+  getInventory,
+  updateInventory,
+  getParts,
+  getWarehouses,
+} from '../services/factoryService';
 
 const Inventory = () => {
   const [data, setData] = useState<InventoryRow[]>([]);
@@ -10,6 +17,16 @@ const Inventory = () => {
   const [form] = Form.useForm<InventoryRow>();
   const [editing, setEditing] = useState<InventoryRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [partOptions, setPartOptions] = useState<{ label: string; value: string }[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ label: string; value: string }[]>([]);
+  const partLabelMap = useMemo(
+    () => Object.fromEntries(partOptions.map((p) => [p.value, p.label])),
+    [partOptions]
+  );
+  const warehouseLabelMap = useMemo(
+    () => Object.fromEntries(warehouseOptions.map((w) => [w.value, w.label])),
+    [warehouseOptions]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -23,9 +40,25 @@ const Inventory = () => {
     }
   }, []);
 
+  const loadFKOptions = useCallback(async () => {
+    try {
+      const [parts, warehouses] = await Promise.all([getParts(), getWarehouses()]);
+      setPartOptions(parts.map((p) => ({ label: `${p.part_id} - ${p.name}`, value: p.part_id })));
+      setWarehouseOptions(
+        warehouses.map((w) => ({
+          label: `${w.warehouse_id} - ${w.address ?? ''}`,
+          value: w.warehouse_id,
+        }))
+      );
+    } catch {
+      message.error('加载关联选项失败，请刷新后重试');
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadFKOptions();
+  }, [loadData, loadFKOptions]);
 
   const openCreate = () => {
     setEditing(null);
@@ -82,8 +115,16 @@ const Inventory = () => {
       <Table<InventoryRow>
         rowKey={(row) => `${row.warehouse_id}-${row.part_id}`}
         columns={[
-          { title: '仓库', dataIndex: 'warehouse_id' },
-          { title: '零件', dataIndex: 'part_id' },
+          {
+            title: '仓库',
+            dataIndex: 'warehouse_id',
+            render: (v: string) => warehouseLabelMap[v] || v,
+          },
+          {
+            title: '零件',
+            dataIndex: 'part_id',
+            render: (v: string) => partLabelMap[v] || v,
+          },
           { title: '库存数量', dataIndex: 'stock_quantity' },
           {
             title: '操作',
@@ -118,16 +159,28 @@ const Inventory = () => {
           <Form.Item
             name="warehouse_id"
             label="仓库"
-            rules={[{ required: true, message: '请输入仓库ID' }]}
+            rules={[{ required: true, message: '请选择仓库' }]}
           >
-            <Input disabled={!!editing} />
+            <Select
+              placeholder="选择仓库"
+              options={warehouseOptions}
+              showSearch
+              optionFilterProp="label"
+              disabled={!!editing}
+            />
           </Form.Item>
           <Form.Item
             name="part_id"
             label="零件"
-            rules={[{ required: true, message: '请输入零件ID' }]}
+            rules={[{ required: true, message: '请选择零件' }]}
           >
-            <Input disabled={!!editing} />
+            <Select
+              placeholder="选择零件"
+              options={partOptions}
+              showSearch
+              optionFilterProp="label"
+              disabled={!!editing}
+            />
           </Form.Item>
           <Form.Item
             name="stock_quantity"

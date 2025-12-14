@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Table, message, Button, Modal, Form, Input, Space, Popconfirm, Select } from 'antd';
 import { Staff as StaffRow } from '../types/factory';
-import { createStaff, deleteStaff, getStaff, updateStaff } from '../services/factoryService';
+import { createStaff, deleteStaff, getStaff, updateStaff, getWarehouses } from '../services/factoryService';
 
 const Staff = () => {
   const [data, setData] = useState<StaffRow[]>([]);
@@ -10,6 +10,11 @@ const Staff = () => {
   const [form] = Form.useForm<StaffRow>();
   const [editing, setEditing] = useState<StaffRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ label: string; value: string }[]>([]);
+  const warehouseLabelMap = useMemo(
+    () => Object.fromEntries(warehouseOptions.map((w) => [w.value, w.label])),
+    [warehouseOptions]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -23,9 +28,24 @@ const Staff = () => {
     }
   }, []);
 
+  const loadFKOptions = useCallback(async () => {
+    try {
+      const warehouses = await getWarehouses();
+      setWarehouseOptions(
+        warehouses.map((w) => ({
+          label: `${w.warehouse_id} - ${w.address ?? ''}`,
+          value: w.warehouse_id,
+        }))
+      );
+    } catch {
+      message.error('加载仓库选项失败');
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadFKOptions();
+  }, [loadData, loadFKOptions]);
 
   const openCreate = () => {
     setEditing(null);
@@ -85,7 +105,11 @@ const Staff = () => {
           { title: '编号', dataIndex: 'staff_id' },
           { title: '姓名', dataIndex: 'name' },
           { title: '职称', dataIndex: 'title' },
-          { title: '仓库', dataIndex: 'warehouse_id' },
+          {
+            title: '仓库',
+            dataIndex: 'warehouse_id',
+            render: (v: string | null) => (v ? warehouseLabelMap[v] || v : ''),
+          },
           {
             title: '操作',
             render: (_, record) => (
@@ -142,9 +166,15 @@ const Staff = () => {
           <Form.Item
             name="warehouse_id"
             label="仓库"
-            rules={[{ required: true, message: '请输入仓库ID' }]}
+            rules={[{ required: true, message: '请选择仓库' }]}
           >
-            <Input />
+            <Select
+              allowClear
+              placeholder="选择仓库（可空）"
+              options={warehouseOptions}
+              showSearch
+              optionFilterProp="label"
+            />
           </Form.Item>
         </Form>
       </Modal>
